@@ -3,6 +3,11 @@ import kotlin.system.measureTimeMillis
 
 private fun log(msg:String) = println("[${Thread.currentThread().name}] $msg")
 
+fun main(args: Array<String>) {
+//    val args2: Array<String> = Array(1) { "hello" }
+    Main().main(args)
+}
+
 class Main() {
 
     fun main(args: Array<String>) {
@@ -45,9 +50,4 @@ class Main() {
 
     }
 
-}
-
-fun main(args: Array<String>) {
-//    val args2: Array<String> = Array(1) { "hello" }
-    Main().main(args)
 }
