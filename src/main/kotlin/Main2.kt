@@ -1,4 +1,5 @@
 import java.util.*
+import kotlin.Comparator
 
 data class Cat(val name:String, val age:Int)
 
@@ -38,9 +39,21 @@ fun main() {
         Cat("Spot", rand()),
     )
 
+    val cats2:List<Cat> = listOf()
+
     println("Oldest cat is: ${ cats.maxOf{ c -> c.age } } years old." )
     println("Oldest cat is: ${ cats.maxOf{ it.age } } years old." ) // identical to above
-    println("Oldest cat name is ${ cats.maxByOrNull { c -> c.age }?.name }." )
+    println("Oldest cat of a null list of cats is: ${ cats2.maxOfOrNull{ it.age } } years old." ) // identical to above, except can return a null of none match
+    println("Oldest cat name is ${ cats.maxByOrNull { c -> c.age }?.name }." ) // identical to above, except can return a null of none match
+    println("Longest cat name is ${ cats.maxOfWithOrNull( {c1:Int, c2:Int -> if (c1==c2) 0 else if (c1>c2) 1 else -1} ) { c -> c.name.length } } characters." ) // same as above except uses comparator
+    println("Longest cat name is ${ cats.maxOfWithOrNull( 
+        {c1:Cat, c2:Cat -> 
+            if (c1.name.length==c2.name.length) 0 
+                else if (c1.name.length>c2.name.length) 1 
+                else -1
+        } ) 
+        { c -> c }?.name }."
+    ) // same as above except uses comparator
 
     val coin = rand()
     var over: Int? = coin.takeIf{ it >= 50}
