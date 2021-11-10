@@ -2,6 +2,7 @@ fun main() {
 
     val outerClass1 = OuterClass1("Jimbo")
     println(outerClass1.name)
+    outerClass1.setLazyAndLateinit()
 
     val outerClass1Nested = OuterClass1.Nested() // note only last is instantiated
     outerClass1Nested.printMessage("Hello there")
@@ -21,11 +22,16 @@ fun main() {
     var x = OuterClass1.randomNumber()
     OuterClass1.x = x
     OuterClass1.randomNumber()
+
 }
 
 class OuterClass1(name: String) {
     val apple = "Apple"
     val number = 250
+    lateinit var a: String
+    val b: String by lazy {
+        randomNumber().toString()
+    }
 
     private val _name: String = name
     val name: String
@@ -42,6 +48,11 @@ class OuterClass1(name: String) {
         class MoreNested { // no access to outer scopes
             fun printAnother(message: String) = println(message)
         }
+    }
+
+    fun setLazyAndLateinit() {
+        a = randomNumber().toString()
+        println("lateinit= $a, lazy=$b")
     }
 
     companion object { // These are like Java static functions and vars
