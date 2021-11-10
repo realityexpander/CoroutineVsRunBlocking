@@ -12,6 +12,7 @@ fun main(args: Array<String>) {
     Main().main(args)
 }
 
+@OptIn(DelicateCoroutinesApi::class)
 class Main() {
 
     fun main(args: Array<String>) {
@@ -21,15 +22,16 @@ class Main() {
         println("Num args=${args.size}")
 
         runBlocking {
-            networkRequest()
-            println()
-            networkRequest2()
+//            networkRequest()
+//            println()
+//            networkRequest2()
+
+            networkRequest3()
         }
 
     }
 
     // This one uses runBlocking, it ignores cancellations
-    @OptIn(DelicateCoroutinesApi::class)
     private suspend fun networkRequest() {
         val time = measureTimeMillis {
             val job = GlobalScope.launch(Dispatchers.IO) {
@@ -60,7 +62,6 @@ class Main() {
     }
 
     // This one uses coroutine scope so its cancellable
-    @OptIn(DelicateCoroutinesApi::class)
     private suspend fun networkRequest2() {
         val time = measureTimeMillis {
             val job = GlobalScope.launch(Dispatchers.IO) {
@@ -88,6 +89,31 @@ class Main() {
         }
 
         println("networkRequest 2 Time: $time")
+    }
+
+    private suspend fun networkRequest3() {
+        GlobalScope.launch {
+            log("Making network request 1")
+            for (i in 1..3) {
+                delay(1000)
+                println("First network req: $i")
+            }
+            log("First network req done.")
+        }
+
+        GlobalScope.launch {
+            log("Making network request 2")
+            for (i in 1..3) {
+                delay(1000)
+                println("Second network req: $i")
+            }
+            log("Second network req done.")
+        }
+
+        @Suppress("BlockingMethodInNonBlockingContext")
+        Thread.sleep(4000) // Wait for program completion
+
+        log("Done.")
     }
 
 }
