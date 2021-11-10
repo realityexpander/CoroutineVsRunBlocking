@@ -1,3 +1,7 @@
+import java.util.*
+
+data class Cat(val name:String, val age:Int)
+
 fun main() {
 
     val outerClass1 = OuterClass1("Jimbo")
@@ -23,13 +27,38 @@ fun main() {
     OuterClass1.x = x
     OuterClass1.randomNumber()
 
+    val rand = { OuterClass1.randomNumber() }
+
+    val cats = listOf(
+        Cat("tom", rand() ),
+        Cat("Jim", rand()),
+        Cat("Mandy", rand()),
+        Cat("Whiskers", rand()),
+        Cat("Mittens", rand()),
+        Cat("Spot", rand()),
+    )
+
+    println("Oldest cat is: ${ cats.maxOf{ c -> c.age } } years old." )
+    println("Oldest cat is: ${ cats.maxOf{ it.age } } years old." ) // identical to above
+    println("Oldest cat name is ${ cats.maxByOrNull { c -> c.age }?.name }." )
+
+    val coin = rand()
+    var over: Int? = coin.takeIf{ it >= 50}
+    var under: Int? = coin.takeUnless{ it >= 50}
+    println( over ?: "$coin is less than 50")
+    println( under ?: "$coin is greater than 50")
+
+
+    val str: String? = if(over==null) null else "over"
+    println(str?.takeIf{ it.isNotEmpty() }?.uppercase(Locale.getDefault()) )
 }
 
 class OuterClass1(name: String) {
     val apple = "Apple"
     val number = 250
-    lateinit var a: String
-    val b: String by lazy {
+
+    lateinit var a: String // lateinit is only allowed on var
+    val b: String by lazy { // lazy is only allowed on val
         randomNumber().toString()
     }
 
