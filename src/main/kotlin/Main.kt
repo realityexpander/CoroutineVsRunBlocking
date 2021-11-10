@@ -27,8 +27,30 @@ class Main() {
 //            networkRequest2()
 
 //            networkRequest3()
-            networkRequest4()
+//            networkRequest4()
+//            networkRequest5()
+//            networkRequest6()
+//            networkRequest7()
+
+//            // Async await with cancellation
+//            try {
+//                asyncAwaitDoBothOperations()
+//            } catch (e: Exception) {
+//                log("$e") // will continue running coroutine
+//            }
+//            log("finished top-level runblocking")
+
+
+            // Async Await with lazy start
+            val networkRequest = async(start = CoroutineStart.LAZY) { networkRequest9() }
+            //networkRequest.start() // just starts the coroutine
+            log(networkRequest.await())
+
         }
+
+//        asyncAwaitExampleBlocking()
+
+//        networkRequest8()
 
     }
 
@@ -117,6 +139,7 @@ class Main() {
         log("Done.")
     }
 
+    // Sequential blocking and various dispatchers
     suspend fun networkRequest4() {
         runBlocking {
             launch {
@@ -144,7 +167,154 @@ class Main() {
             }
             delay(1000)
         }
+    }
 
+    // Cancel and Join simple example
+    private suspend fun networkRequest5() {
+        val job = GlobalScope.launch {
+            log("Job 1: Making network request")
+            for (i in 1..5) {
+                delay(1000)
+                println("Job 1: Waiting...: $i")
+            }
+            log("Job1: network req done.")
+        }
+
+        val job2 = GlobalScope.launch {
+            log("Job 2: Making network request")
+            for (i in 1..5) {
+                delay(1000)
+                println("Job 2: Waiting...: $i")
+            }
+            log("Job2: network req done.")
+        }
+
+        delay(2000)
+        job.cancelAndJoin()
+        job2.join()
+
+        log("Done")
+    }
+
+    // Cancel with timeout example
+    private suspend fun networkRequest6() {
+        try {
+            withTimeout(5000) {
+                val job = GlobalScope.launch {
+                    log("Job 1: Making network request")
+                    for (i in 1..5) {
+                        delay(3000)
+                        println("Job 1: Waiting...: $i")
+                    }
+                    log("Job1: network req done.")
+                }
+
+                job.join()
+                log("network request successful")
+            }
+
+            log("Done")
+        } catch (e:Exception) {
+            log(e.toString())
+            log("network request cancelled")
+        }
+    }
+
+    // Cancel with timeoutOrNull example
+    private suspend fun networkRequest7() {
+        withTimeoutOrNull(5000) {
+            val job = GlobalScope.launch {
+                log("Job 1: Making network request")
+                for (i in 1..5) {
+                    delay(3000)
+                    println("Job 1: Waiting...: $i")
+                }
+                log("Job1: network req done.")
+            }
+
+            job.join()
+            log("network request successful")
+        } // Will end with a null/no-op
+
+        log("Done")
+    }
+
+    // Cancellation example 1
+    private fun networkRequest8() {
+        runBlocking {
+            val startTime = System.currentTimeMillis()
+            val job = launch(Dispatchers.Default) {
+                var nextPrintTime = startTime
+                var i = 0
+                while (i<5 && isActive) { // use isActive to check for cancellation
+                    // computation loop, waste CPU
+                    if (System.currentTimeMillis() >= nextPrintTime) {
+                        println("job: Im sleeping ${i++}")
+                        nextPrintTime += 500L
+                    }
+                }
+            }
+            delay(1300)
+            println("main: Im tired of waiting!")
+            job.cancelAndJoin()
+            println("main: now I can quit")
+        }
+    }
+
+    //////////////////////////////////
+    // Async and Await
+
+    private fun asyncAwaitExampleBlocking() {
+        runBlocking {
+            // Async & Await example
+            val time = measureTimeMillis {
+                val sum = async { addNumbers(10, 12) }
+                val product = async { multiplyNumbers(10, 12) }
+
+                log("the sum of addNumbers: ${sum.await()}")
+                log("the product of multiplyNumbers: ${product.await()}")
+            }
+            log("Completed $time")
+        }
+    }
+
+    private suspend fun asyncAwaitDoBothOperations() = coroutineScope {
+        val time = measureTimeMillis {
+            val sum = async { addNumbers(10, 12) }
+            val productWithErrors = async { multiplyNumbersWithErrors(10, 12) }
+
+            log("the sum of addNumbers: ${sum.await()}")
+            log("the product of multiplyNumbers: ${productWithErrors.await()}") // will never print and cancels the coroutine
+        }
+        log("Completed $time") // never completes
+    }
+
+    private suspend fun addNumbers(n: Int, n2: Int): Int {
+        delay(2000)
+        return n + n2
+    }
+
+    private suspend fun multiplyNumbers(n: Int, n2: Int): Int {
+        delay(2500)
+        return n * n2
+    }
+
+    private suspend fun multiplyNumbersWithErrors(n: Int, n2: Int): Int {
+        delay(2500)
+        throw RuntimeException()
+        //return n * n2
+    }
+
+    private suspend fun networkRequest9(): String {
+        log("Making network request 1")
+        for (i in 1..3) {
+            delay(1000)
+            println("First network req: $i")
+        }
+        delay(1000)
+        log("First network req done.")
+
+        return "Network data"
     }
 
 }
