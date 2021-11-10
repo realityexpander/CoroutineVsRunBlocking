@@ -26,7 +26,8 @@ class Main() {
 //            println()
 //            networkRequest2()
 
-            networkRequest3()
+//            networkRequest3()
+            networkRequest4()
         }
 
     }
@@ -114,6 +115,36 @@ class Main() {
         Thread.sleep(4000) // Wait for program completion
 
         log("Done.")
+    }
+
+    suspend fun networkRequest4() {
+        runBlocking {
+            launch {
+                log("first - no scope") // runs in main (inherits scope)
+            }
+            delay(1000)
+
+            // Good for no cpu nor update UI
+            launch(Dispatchers.Unconfined) {
+                log("second - .unconfined") // runs on main
+                delay(100)
+                log("second 2 - .unconfined") // runs on defaultExecutor
+            }
+            delay(1000)
+
+            // Same as launching in GlobalScope, good for CPU intensive ops
+            launch(Dispatchers.Default) {
+                log("third - .default") // runs of worker-1
+            }
+            delay(1000)
+
+            // Make sure thread is destroyed after not needed
+            launch(newSingleThreadContext("Banana Bread")) {
+                log("fourth - newSingleThread") // runs on Banana Bread
+            }
+            delay(1000)
+        }
+
     }
 
 }
