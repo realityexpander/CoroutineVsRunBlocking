@@ -32,19 +32,19 @@ class Main() {
 //            networkRequest6()
 //            networkRequest7()
 
-//            // Async await with cancellation
-//            try {
-//                asyncAwaitDoBothOperations()
-//            } catch (e: Exception) {
-//                log("$e") // will continue running coroutine
-//            }
-//            log("finished top-level runblocking")
+            // Async await with cancellation
+            try {
+                asyncAwaitDoBothOperations()
+            } catch (e: Exception) {
+                log("error $e") // will continue running coroutine
+            }
+            log("finished top-level runblocking")
 
 
-            // Async Await with lazy start
-            val networkRequest = async(start = CoroutineStart.LAZY) { networkRequest9() }
-            //networkRequest.start() // just starts the coroutine
-            log(networkRequest.await())
+//            // Async Await with lazy start
+//            val networkRequest = async(start = CoroutineStart.LAZY) { networkRequest9() }
+//            //networkRequest.start() // just starts the coroutine
+//            log(networkRequest.await())
 
         }
 
@@ -284,7 +284,14 @@ class Main() {
             val productWithErrors = async { multiplyNumbersWithErrors(10, 12) }
 
             log("the sum of addNumbers: ${sum.await()}")
+
             log("the product of multiplyNumbers: ${productWithErrors.await()}") // will never print and cancels the coroutine
+//            GlobalScope.launch {
+//                val productWithErrors2 = async { multiplyNumbersWithErrors(20, 32) }
+//                log("the product of multiplyNumbers2: ${productWithErrors2.await()}")
+//            }
+
+            log("After error productWithErrors ")
         }
         log("Completed $time") // never completes
     }
@@ -300,7 +307,7 @@ class Main() {
     }
 
     private suspend fun multiplyNumbersWithErrors(n: Int, n2: Int): Int {
-        delay(2500)
+        delay(500)
         throw RuntimeException()
         //return n * n2
     }
