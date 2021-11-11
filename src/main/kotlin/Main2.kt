@@ -1,6 +1,12 @@
 import java.util.*
 import kotlin.Comparator
 
+// Testing Nested Classes with and without nested keyword
+// Lazy vs lateinit
+// collection operators: maxOf, maxBy, maxOfWith, Comparators
+// takeif, takeUnless
+// list -> map
+
 data class Cat(val name:String, val age:Int)
 
 fun main() {
@@ -25,7 +31,7 @@ fun main() {
     println(Numbers.APP_NAME)
 
     var x = OuterClass1.randomNumber()
-    OuterClass1.x = x
+    OuterClass1.x = x // mess with the lower bound of the random number generator
     OuterClass1.randomNumber()
 
     val rand = { OuterClass1.randomNumber() }
@@ -37,9 +43,16 @@ fun main() {
         Cat("Whiskers", rand()),
         Cat("Mittens", rand()),
         Cat("Spot", rand()),
+        Cat("cat", 5),
+        Cat("dog", 5),
     )
 
     val cats2:List<Cat> = listOf()
+
+    val codonTable = mapOf("ATT" to "Isoleucine", "CAA" to "Glutamine", "CGC" to "Arginine", "GGC" to "Glycine")
+    val dnaFragment = "ATTCGCGGCCGCCAAXAF"
+    val proteins = dnaFragment.chunked(3) { codon -> codonTable[codon.toString()] ?: "Unknown Codon"}
+    println("proteins: $proteins")
 
     println("Oldest cat is: ${ cats.maxOf{ c -> c.age } } years old." )
     println("Oldest cat is: ${ cats.maxOf{ it.age } } years old." ) // identical to above
@@ -65,10 +78,72 @@ fun main() {
     println( over ?: "$coin is less than 50")
     println( under ?: "$coin is greater than 50")
 
-
     val str: String? = if(over==null) null else "over"
     println(str?.takeIf{ it.isNotEmpty() }?.uppercase(Locale.getDefault()) )
+
+    val catsFlatMap = cats.flatMap { c -> listOf(c.name, c.age) }
+    println("catsFlatMap=$catsFlatMap")
+    val catsChunked = catsFlatMap.chunked(2) { c -> CatChunks(c[0] as String, c[1] as Int) }
+    println("catsChunked=$catsChunked")
+    val catMap = catsChunked.toMap()
+    println("catMap=$catMap")
+    val catKeyReversed = catMap.entries.associate { (k,v) -> v to k }
+    val catKeyReversed2 = catMap.toList().map{ (k,v) -> v to k }.toMap()
+    val catKeyReversed3 = catMap.entries.associateBy({ kv -> kv.value }, { kv -> kv.key })
+    val catKeyReversed4 = catMap.entries.associateBy({ it.value }, { it.key })
+    val catKeyReversed5: CatMapReversed = mutableMapOf()
+        catMap.entries.associateByTo(catKeyReversed5, { it.value }, { it.key })
+    println("catKeyReversed5=$catKeyReversed5, size=${catKeyReversed5.size}")
+
+    // HashMap is same as Map, can only have one key for a value
+    val catKeyReversedHash = CatHashMapReversed().also { hashMap ->
+        catMap.entries.forEach { (k,v) -> hashMap[v] = k }
+    }
+    println("catKeyReversedHash=$catKeyReversedHash, size=${catKeyReversedHash.size}")
+
+    val catMapReversedWithListValues: CatMapReversedWithListValues =
+      catMap
+        .toList()
+        .groupBy{ (_,v) -> v } // group by the age(v), returns: Map<Age, Entries> & Entries is a List<Pair<Name,Age>>>
+        .mapValues{ (_,entries) -> //entries }
+            entries.map { (k,_) -> k  }.toMutableList() // Change the values for a key into a list of strings (cat name)
+        }.toMutableMap()
+    catMapReversedWithListValues[5].also { e -> e?.add("Kitten")}
+    catMapReversedWithListValues[5]?.add("Another Kitten")
+    catMapReversedWithListValues[5]?.remove("Kitten #3")
+    catMapReversedWithListValues[5]?.remove("cat")
+    catMapReversedWithListValues[5]?.remove("dog")
+
+//    catMapReversedWithListValues[1].also { e -> if(e!=null) e.add("#####") else { e=mutableListOf("#$#-cant-do-this") } } // cant create an object in the null receiver
+
+
+    catMapReversedWithListValues.addToList(6, "Hello kitty")
+//    catMapReversedWithListValues[6].addToList3("Hello kitty") // Cant do this on a nullable receiver!!!
+
+    println("catMapReversedWithListValues=$catMapReversedWithListValues, size=${catMapReversedWithListValues.size}")
 }
+
+
+fun CatMapReversedWithListValues.addToList( index: Int, catName: String) = run {
+    if (this[index] == null) {
+        this[index] = mutableListOf(catName)
+    } else
+        this[index]?.add(catName)
+}
+
+//// Impossible to pass a null receiver in and have it instantiated!
+//fun MutableList<String>?.addToList3(catName: String) = run {
+//    if (this == null) {
+//        this = mutableListOf(catName)
+//    } else
+//        this.add(catName)
+//}
+
+typealias CatChunks = Pair<String, Int>
+typealias CatMapReversed = MutableMap<Int, String>
+typealias CatMap = Map<String, Int>
+typealias CatHashMapReversed = HashMap<Int, String>
+typealias CatMapReversedWithListValues = MutableMap<Int, MutableList<String>>
 
 class OuterClass1(name: String) {
     val apple = "Apple"
