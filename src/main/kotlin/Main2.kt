@@ -46,14 +46,18 @@ fun main() {
     println("Oldest cat of a null list of cats is: ${ cats2.maxOfOrNull{ it.age } } years old." ) // identical to above, except can return a null of none match
     println("Oldest cat name is ${ cats.maxByOrNull { c -> c.age }?.name }." ) // identical to above, except can return a null of none match
     println("Longest cat name is ${ cats.maxOfWithOrNull( {c1:Int, c2:Int -> if (c1==c2) 0 else if (c1>c2) 1 else -1} ) { c -> c.name.length } } characters." ) // same as above except uses comparator
-    println("Longest cat name is ${ cats.maxOfWithOrNull( 
-        {c1:Cat, c2:Cat -> 
+    println("Longest cat name is ${ cats.maxOfWithOrNull<Cat, Cat>( 
+            comparator = Comparator<Cat>{ c1:Cat, c2:Cat -> 
             if (c1.name.length==c2.name.length) 0 
                 else if (c1.name.length>c2.name.length) 1 
                 else -1
-        } ) 
-        { c -> c }?.name }."
+            }, 
+            selector = { c -> c }
+        )?.name }."
     ) // same as above except uses comparator
+    println("Longest cat name is ${ cats.maxOfWithOrNull(
+        { a, b -> val aLen=a.name.length; val bLen=b.name.length; if (aLen==bLen) 0 else if(aLen>bLen) 1 else -1 }) 
+        { it }?.name }.") // same as above except on three lines
 
     val coin = rand()
     var over: Int? = coin.takeIf{ it >= 50}
