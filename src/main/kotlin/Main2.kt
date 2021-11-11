@@ -1,5 +1,6 @@
 import java.util.*
 import kotlin.Comparator
+import kotlin.math.roundToInt
 
 // Testing Nested Classes with and without nested keyword
 // Lazy vs lateinit
@@ -8,6 +9,7 @@ import kotlin.Comparator
 // list -> map
 
 data class Cat(val name:String, val age:Int)
+data class Dog(val name:String, val age:Int, val breeds: List<String>)
 
 fun main() {
 
@@ -121,6 +123,151 @@ fun main() {
 //    catMapReversedWithListValues[6].addToList3("Hello kitty") // Cant do this on a nullable receiver!!!
 
     println("catMapReversedWithListValues=$catMapReversedWithListValues, size=${catMapReversedWithListValues.size}")
+
+
+    println()
+    println()
+
+    val dogList = mutableListOf(
+        Dog("Kenny", 12, listOf("Cocker-spaniel", "Dauchschund") ),
+        Dog("Jimmy", 23, listOf("Mutt", "Runt", "Frank") ),
+        Dog("Jackie", 23, listOf("Mutt", "Runt", "Frank") ),
+        Dog("Larry", 18, listOf("Cocker-spaniel", "Frank") ),
+        Dog("Cat", 4, listOf("Beta", "Cocker-spaniel", "Frank", "Runt") ),
+        Dog("Kitty", 4, listOf("Beta", "Cocker-spaniel", "Frank") ),
+        Dog("Benji", 3, listOf("Red-litter", "Dauchschund") ),
+        Dog("Keni", 2, listOf("Fellow", "Dauchschund", "Jiminy") ),
+
+    )
+
+    println("List dogs that has EXACTLY ALL requisite breeds")
+    dogList
+        .groupBy { (name, age, breeds) ->
+            breeds
+        }
+        .forEach { (k,v) ->
+            println("=== breed: $k ===")
+            v.forEachIndexed { i, k ->
+                println("${i+1L}. ${k.name}")
+            }
+        }
+
+    println()
+    println()
+
+    println("List dogs have each breed")
+    val dogs = dogList.map { dog ->
+            println("${dog.name} - ${dog.breeds}")
+            dog.breeds.map { breed -> // create a list of all the breeds for each dog
+                Pair(breed, dog)
+            }
+        }
+        .also {
+            it
+        }
+        .flatten() // flatten a List of Lists to just a single List
+        .also {
+            it
+        }
+        .groupBy { (breed, dog) ->
+            breed
+        }
+        .also {
+            it
+        }
+        .map{ (breed, dogs) ->
+            println("=== Dogs who have breed: $breed ===")
+            dogs.forEachIndexed { i, (breed, dog) ->
+                println("${i+1}. ${dog.name}")
+            }
+            Triple(breed, dogs.map{(_, dog)-> dog.name}, dogs.sumOf{(_, dog) -> dog.age})
+        }
+        .map { (breed, dogs, totalAge) ->
+            // Calc the average age of the breed
+            Pair(breed, (totalAge / dogs.count().toFloat()) )
+        }
+        .also {
+            println("--------•stats•-------")
+        }
+        .toMap()
+        .map { (breed, averageAge) ->
+            println("Average age of breed $breed is $averageAge")
+        }
+
+    dogList.map{ dog ->
+            dog.age
+        }
+        .also {
+        }
+        .reduce { acc,age ->
+            acc + age
+        }
+        .also { dogsAgeTotal ->
+            println("Total Age of all dogs: $dogsAgeTotal")
+        }
+
+    // Same as above but uses sum()
+    dogList.map{ dog ->
+            dog.age
+        }.sum()
+        .also { dogsAgeTotal ->
+            println("Total Age of all dogs using sum(): $dogsAgeTotal")
+        }
+
+    // Same as above but uses sumOf()
+    dogList.sumOf{ dog ->
+            dog.age
+        }
+        .also { dogsAgeTotal ->
+            println("Total Age of all dogs using sumOf(): $dogsAgeTotal")
+        }
+
+    // Average
+    dogList.map{ dog ->
+            dog.age
+        }.average()
+        .also { dogsAgeAverage ->
+            println("Average Age of all dogs using average(): $dogsAgeAverage")
+        }
+        .roundToInt()
+        .also { dogsAgeAverageRounded ->
+            println("Average Age of all dogs using average() rounded: $dogsAgeAverageRounded")
+        }
+
+    // Min
+    dogList.minOf{ dog ->
+            dog.age
+        }
+        .also { dogsAgeMin ->
+            println("Youngest Age of all dogs using minOf(): $dogsAgeMin")
+        }
+
+    // Max
+    dogList.maxOf{ dog ->
+            dog.age
+        }
+        .also { dogsAgeMax ->
+            println("Oldest Age of all dogs using maxOf(): $dogsAgeMax")
+        }
+
+    // Partition
+    dogList.partition { dog ->
+            dog.age < 10
+        }
+        .also { (dogYoung, dogOld) ->
+            println("Young Dogs: ${
+                dogYoung.map{ 
+                    it.name
+                }.joinToString(", ")
+            }")
+            println("Old Dogs: ${
+                dogOld.map{
+                    it.name
+                }.joinToString(", ")
+            }")
+        }
+
+
 }
 
 
