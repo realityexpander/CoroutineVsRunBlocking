@@ -131,7 +131,7 @@ fun main() {
     val dogList = mutableListOf(
         Dog("Kenny", 12, listOf("Cocker-spaniel", "Dauchschund") ),
         Dog("Jimmy", 23, listOf("Mutt", "Runt", "Frank") ),
-        Dog("Jackie", 23, listOf("Mutt", "Runt", "Frank") ),
+        Dog("Zackie", 23, listOf("Mutt", "Runt", "Frank") ),
         Dog("Larry", 18, listOf("Cocker-spaniel", "Frank") ),
         Dog("Cat", 4, listOf("Beta", "Cocker-spaniel", "Frank", "Runt") ),
         Dog("Kitty", 4, listOf("Beta", "Cocker-spaniel", "Frank") ),
@@ -294,15 +294,16 @@ fun main() {
         }
 
     println()
-    println("List dogs that have each breed - simplified with groupBy valueTransform")
+    println("List dogs that have each breed - simplified with groupBy valueTransform, sorted alpha order")
     dogList.flatMap { dog -> // create a list of lists of Dogs with single breed, then flatten it to just a list of Dogs.
             dog.breeds.map { breed ->
                 Pair(breed, dog)
             }
         }
         .also {
-            it.map { (breed, dog) ->
-            }
+        }
+        .sortedBy { (breed, dog) ->
+            breed
         }
         .groupBy(
             keySelector = { (breed, dog) -> // set the key as String name of dog
@@ -315,8 +316,13 @@ fun main() {
         .also {
         }
         .also { breedDogs ->
-            breedDogs.map { (breed, dogs) ->
-                println("$breed - ${dogs.map{ dog-> dog.name }}")
+            breedDogs
+                .map { (breed, dogs) ->
+                    dogs.sortedBy { dog -> dog.name }
+                    .also { dogs ->
+                        println("$breed - ${dogs.map{ dog-> dog.name }}")
+                    }
+
             }
         }
 
