@@ -155,7 +155,7 @@ fun main() {
     println()
     println()
 
-    println("List dogs have each breed")
+    println("List dogs that have each breed")
     val dogs = dogList.map { dog ->
             println("${dog.name} - ${dog.breeds}")
             dog.breeds.map { breed -> // create a list of all the breeds for each dog
@@ -194,6 +194,7 @@ fun main() {
             println("Average age of breed $breed is $averageAge")
         }
 
+    // reduce
     dogList.map{ dog ->
             dog.age
         }
@@ -260,13 +261,64 @@ fun main() {
                     it.name
                 }.joinToString(", ")
             }")
+
             println("Old Dogs: ${
                 dogOld.map{
                     it.name
                 }.joinToString(", ")
             }")
+
+            var oldDogsString = StringBuffer("Old Dogs: ") // Same as above but uses a string buffer
+            println("Old Dogs: ${
+                dogOld.map{
+                    it.name
+                }.joinTo(oldDogsString)
+            }")
+            println("$oldDogsString")
         }
 
+    // name -> Dog
+    dogList.associateBy{ dog ->
+            dog.name
+        }
+        .also {
+
+        }
+
+    // Dog -> name
+    dogList.associateWith{ dog ->
+            dog.name
+        }
+        .also {
+
+        }
+
+    println()
+    println("List dogs that have each breed - simplified with groupBy valueTransform")
+    dogList.flatMap { dog -> // create a list of lists of Dogs with single breed, then flatten it to just a list of Dogs.
+            dog.breeds.map { breed ->
+                Pair(breed, dog)
+            }
+        }
+        .also {
+            it.map { (breed, dog) ->
+            }
+        }
+        .groupBy(
+            keySelector = { (breed, dog) -> // set the key as String name of dog
+                breed
+            },
+            valueTransform = { (breed, dog) -> // replace list of List<Pair<String, Dog>> with just List<Dog>
+                dog
+            }
+        )
+        .also {
+        }
+        .also { breedDogs ->
+            breedDogs.map { (breed, dogs) ->
+                println("$breed - ${dogs.map{ dog-> dog.name }}")
+            }
+        }
 
 }
 
