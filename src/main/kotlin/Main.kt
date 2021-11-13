@@ -1,12 +1,13 @@
-
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.system.measureTimeMillis
 
 // Config for Android Studio: https://www.youtube.com/watch?v=a_pL0asAP3U
 // This video: Kotlin Coroutines: coroutineScope vs. runBlocking (Tutorial) https://www.youtube.com/watch?v=k_xRxXoimSw
 
-private fun log(msg:String) = println("[${Thread.currentThread().name}] $msg")
+private fun log(msg: String) = println("[${Thread.currentThread().name}] $msg")
 
 fun main(args: Array<String>) {
 //    val args2: Array<String> = Array(1) { "hello" }
@@ -69,7 +70,10 @@ class Main() {
 //        conflateExample()
 
 //        zipCombineOperatorExample()
-        flatMapConcatExample()
+//        flatMapConcatExample()
+//        flatMapMergeExample()
+
+        launchInExample()
 
 
     }
@@ -107,7 +111,7 @@ class Main() {
                 .onEach {
                     it * 2
                 }
-                .filter{ it % 2 == 0 }
+                .filter { it % 2 == 0 }
                 .transform {
                     emit("The thing is $it")
                 }
@@ -138,7 +142,7 @@ class Main() {
                     println("${it.index}. value = ${it.value}")
                     it.value
                 }
-                .catch { e->
+                .catch { e ->
                     println("Caught exception $e")
                 }
                 .onStart {
@@ -157,16 +161,15 @@ class Main() {
 
     // Various generators
     fun sendNumbers1(): Flow<Int> = flow {
-        val primesList = listOf<Int>(1,2,3,4,5,6,8)
+        val primesList = listOf<Int>(1, 2, 3, 4, 5, 6, 8)
         primesList.forEach {
             delay(it.toLong())
             emit(it)
         }
     }
-    fun sendNumbers2() = flowOf(1,2,3,4,5)
-    fun sendNumbers3() = listOf(1,2,3,4,5).asFlow()
 
-
+    fun sendNumbers2() = flowOf(1, 2, 3, 4, 5)
+    fun sendNumbers3() = listOf(1, 2, 3, 4, 5).asFlow()
 
 
     ///////////////////////////
@@ -175,7 +178,7 @@ class Main() {
 
     // https://www.youtube.com/watch?v=VJofY3ESaNg
 
-    fun bufferExample()  = runBlocking {
+    fun bufferExample() = runBlocking {
         val time = measureTimeMillis {
             getFlow()
                 .buffer(10) // creates a new coroutine, collects all values and holds them
@@ -189,7 +192,7 @@ class Main() {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun conflateExample()  = runBlocking {
+    fun conflateExample() = runBlocking {
         val time = measureTimeMillis {
             flowOnDispatcherDefault()
                 .conflate() // when you only care about recent values (just get latest)
@@ -215,34 +218,29 @@ class Main() {
     }
 
     fun getFlow() = flow {
-        for( value in 1..10 ) {
+        for (value in 1..10) {
             delay(100) // pretend computation / network
             println("emit flow $value")
             emit(value)
         }
     }
 
-    fun getFlowStrings(value: Int) = flow {
-        emit("First emitted $value")
-        delay(300)
-        emit("Second emitted $value")
-    }
 
     fun flowOnDispatcherDefault() = flow {
 //        withContext(Dispatchers.Default) { // Dont use this
-            for( value in 1..10 ) {
-                delay(100) // pretend computation / network
-                println("emit flow $value")
-                emit(value)
-            }
+        for (value in 1..10) {
+            delay(100) // pretend computation / network
+            println("emit flow $value")
+            emit(value)
+        }
     }.flowOn(Dispatchers.Default)
 
 
     fun zipCombineOperatorExample() = runBlocking {
         val flow1 = (1..5).asFlow()
-            .onEach{ delay(100) }
+            .onEach { delay(100) }
         val flow2 = flowOf("one", "two", "three", "four", "five", "six")
-            .onEach{ delay(200) }
+            .onEach { delay(200) }
         var startTime = System.currentTimeMillis()
 
         // zip waits for the value to arrive, the emits
@@ -264,20 +262,193 @@ class Main() {
     }
 
     fun flatMapConcatExample() = runBlocking {
+        var startTime = System.currentTimeMillis()
+
+
         (1..5).asFlow()
-            .onEach{
-                delay(300)
+            .onEach {
+                delay(100)
+            }
+            .onEach {
             }
             .flatMapConcat {
                 getFlowStrings(it)
             }
+//            .map {
+//                getFlowStrings(it)
+//            }
+//            .flattenConcat() // .map->.flattenConcat == .flatMapConcat
             .onEach {
-
             }
             .collect {
-                println(it)
+                println("$it, time=${System.currentTimeMillis() - startTime}ms")
             }
     }
+
+    fun flatMapMergeExample() = runBlocking {
+        var startTime = System.currentTimeMillis()
+
+
+        (1..5).asFlow()
+            .onEach {
+                delay(100)
+            }
+            .onEach {
+            }
+            .flatMapMerge {
+                getFlowStrings(it)
+            }
+//            .map {
+//                getFlowStrings(it)
+//            }
+//            .flattenMerge() // .map->.flattenMerge == .flatMapMerge
+            .onEach {
+            }
+            .collect {
+                println("$it, time=${System.currentTimeMillis() - startTime}ms")
+            }
+    }
+
+    fun getFlowStrings(value: Int) = flow {
+        emit("First emitted $value")
+        delay(300)
+        emit("Second emitted $value")
+    }
+
+
+    fun launchInExample() = runBlocking {
+
+        val job1 = Job()
+        val job2 = Job()
+
+        val jobScope = CoroutineScope(job1) // + Dispatchers.Default)
+        val jobScope2 = CoroutineScope(job2) // + Dispatchers.Default)
+        val superScope = CoroutineScope(SupervisorJob() )
+
+        val handler = CoroutineExceptionHandler {
+                context, exception -> println("handler Caught $exception")
+        }
+
+        val handler2 = CoroutineExceptionHandler {
+                context, exception -> println("handler2 Caught $exception")
+        }
+
+        var coroutine2 = { coroutineScope: CoroutineScope ->
+            println("\nLaunched coroutine 2: $coroutineScope")
+
+            // These 2 coroutines will run concurrently
+            flowOf("one", "two", "three", "four", "five", "six")
+                .flowOn(Dispatchers.IO)
+//                .cancellable() // needed?
+                .map {
+//                    if (it == "two") error(CancellationException("from .map, error on \"$it\"")) // cancels all child flows
+                    if (it == "two") throw CancellationException("from .map, error on \"$it\"") // cancels just this flow
+                    it
+                }
+                .catch { e ->
+                    println("#3 - .catch: e=$e") // just prints message, cancels the flow
+//                    currentCoroutineContext().cancel(CancellationException(".cancel() from catch")) // cancels the flow, next flow keeps running
+//                    emit("emit() from .catch(), error:${e.message}") // emits a value instead of error, flow keeps running
+//                    throw Exception(".catch() exception thrown again $e") // cancels all the flows
+                    throw e
+                }
+                .onCompletion { e ->
+                    println("#3 - .onCompletion: e=$e")
+//                    job1.cancel() // This will cancel the parent coroutine
+//                    emit("emit() from .onCompletion") // emits upon completion
+                    e?.run{ error(e) } // cancels all child flows
+//                    e?.run{ throw(e) } // cancels only this flow
+                }
+                .onEach {
+                    delay(150)
+                    println("coroutine #3 - $it")
+                }
+                .launchIn(coroutineScope)
+
+            (1..5).asFlow()
+                .flowOn(Dispatchers.IO)
+                .onEach {
+                    delay(200)
+                    println("coroutine #4 - $it")
+                }
+                .onCompletion {
+                    job1.complete()
+                }
+                .launchIn(coroutineScope)
+        }
+
+        jobScope.launch(handler) {
+            println("Launch Coroutine 1")
+
+            // These 2 coroutines will run sequentially
+            flowOf("one", "two", "three", "four", "five", "six")
+                .flowOn(Dispatchers.IO)
+                .collect {
+                    delay(15)
+                    println("coroutine #1 - $it")
+                }
+
+            (1..5).asFlow()
+                .flowOn(Dispatchers.IO)
+                .onCompletion {
+
+////                    coroutineScope {
+//                    supervisorScope {
+//                        try {
+//                            val deferred = async {
+//                                coroutine2(jobScope2)
+//                            }
+//                                deferred.await()
+//                            } catch (e: Exception) {
+//                                println(e)
+//                            }
+//                        }
+
+//                    jobScope.launch(SupervisorJob()) { // no error
+//                    jobScope.launch(handler2) { // Catches the exception
+                      jobScope.launch(context = object: CoroutineExceptionHandler {
+                          val handler = CoroutineExceptionHandler { c, e ->
+                              println("inLine handler Caught $e")
+                          }
+
+                          override val key: CoroutineContext.Key<*>
+                              get() = handler.key
+
+                          override fun handleException(context: CoroutineContext, exception: Throwable) {
+                              handler(context, exception)
+                          }
+                      })
+                    {
+//                    jobScope.launch { // Crashes on exception
+                        try {
+                            coroutine2(this)
+                        } catch (e:Exception) {
+                            println(e)
+                        }
+                    }
+
+//                    launch(handler2) {
+//                        coroutine2(this)
+////                        coroutine2(CoroutineScope(Job() + Dispatchers.IO))
+//                    }
+
+//                    supervisorScope {
+//                        launch(handler2) {
+//                            coroutine2(this)
+//                        }
+//                    }
+                }
+                .collect {
+                    delay(20)
+                    println("coroutine #2 - $it")
+                }
+        }
+
+
+        job1.join()
+
+    }
+
 
     //////////////////////////////
 
@@ -444,7 +615,7 @@ class Main() {
             }
 
             log("Done")
-        } catch (e:Exception) {
+        } catch (e: Exception) {
             log(e.toString())
             log("network request cancelled")
         }
@@ -476,7 +647,7 @@ class Main() {
             val job = launch(Dispatchers.Default) {
                 var nextPrintTime = startTime
                 var i = 0
-                while (i<5 && isActive) { // use isActive to check for cancellation
+                while (i < 5 && isActive) { // use isActive to check for cancellation
                     // computation loop, waste CPU
                     if (System.currentTimeMillis() >= nextPrintTime) {
                         println("job: Im sleeping ${i++}")
