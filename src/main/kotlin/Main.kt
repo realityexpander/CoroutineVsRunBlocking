@@ -1,5 +1,6 @@
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import kotlin.system.measureTimeMillis
 
 // Config for Android Studio: https://www.youtube.com/watch?v=a_pL0asAP3U
@@ -32,13 +33,16 @@ class Main() {
 //            networkRequest6()
 //            networkRequest7()
 
-            // Async await with cancellation
-            try {
-                asyncAwaitDoBothOperations()
-            } catch (e: Exception) {
-                log("error $e") // will continue running coroutine
-            }
-            log("finished top-level runblocking")
+
+            //////////////////////////////////
+
+//            // Async await with cancellation
+//            try {
+//                asyncAwaitDoBothOperations()
+//            } catch (e: Exception) {
+//                log("error $e") // will continue running coroutine
+//            }
+//            log("finished top-level runblocking")
 
 
 //            // Async Await with lazy start
@@ -46,13 +50,239 @@ class Main() {
 //            //networkRequest.start() // just starts the coroutine
 //            log(networkRequest.await())
 
+            ////////////////////////////////////
+
         }
 
 //        asyncAwaitExampleBlocking()
 
 //        networkRequest8()
 
+//        runFlow1()
+//        runFlow2()
+//        runFlow3()
+
+//        println(".buffer() =")
+//        bufferExample()
+//        println()
+//        println(".conflate() =")
+//        conflateExample()
+
+//        zipCombineOperatorExample()
+        flatMapConcatExample()
+
+
     }
+
+    /// FLOW ///
+
+    // Basic flow
+    fun runFlow1() {
+
+        runBlocking {
+            println("Receiving numbers")
+            sendNumbers1().collect {
+                println("Receive number $it")
+            }
+            println("Finished.")
+        }
+
+    }
+
+    // Transforms and filters
+    fun runFlow2() {
+
+        // cant use .also
+
+        runBlocking {
+            println("Receiving numbers")
+            (1..10).asFlow()
+                .map {
+                    delay(300)
+                    "Number $it"
+                }
+                .map {
+                    it.substringAfter(" ").toInt()
+                }
+                .onEach {
+                    it * 2
+                }
+                .filter{ it % 2 == 0 }
+                .transform {
+                    emit("The thing is $it")
+                }
+                .collect {
+                    println("Received $it")
+                }
+
+            println("Finished.")
+        }
+    }
+
+
+    // Exceptions and withIndex
+    fun runFlow3() {
+
+        runBlocking {
+            println("Receiving numbers")
+            (1..10).asFlow()
+                .map {
+                    delay(300)
+                    it
+                }
+                .onEach {
+                    check(it != 7)
+                }
+                .withIndex()
+                .map {
+                    println("${it.index}. value = ${it.value}")
+                    it.value
+                }
+                .catch { e->
+                    println("Caught exception $e")
+                }
+                .onStart {
+                    println("Started...")
+                }
+                .onCompletion {
+                    println("Flow completed!")
+                }
+                .collect {
+                    println("Received $it")
+                }
+
+            println("Finished.")
+        }
+    }
+
+    // Various generators
+    fun sendNumbers1(): Flow<Int> = flow {
+        val primesList = listOf<Int>(1,2,3,4,5,6,8)
+        primesList.forEach {
+            delay(it.toLong())
+            emit(it)
+        }
+    }
+    fun sendNumbers2() = flowOf(1,2,3,4,5)
+    fun sendNumbers3() = listOf(1,2,3,4,5).asFlow()
+
+
+
+
+    ///////////////////////////
+
+    //// Buffer vs Conflate ///
+
+    // https://www.youtube.com/watch?v=VJofY3ESaNg
+
+    fun bufferExample()  = runBlocking {
+        val time = measureTimeMillis {
+            getFlow()
+                .buffer(10) // creates a new coroutine, collects all values and holds them
+                .collect {
+                    delay(300) // pretend processing
+                    println("collect $it")
+                }
+        }
+
+        println("Time = $time")
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun conflateExample()  = runBlocking {
+        val time = measureTimeMillis {
+            flowOnDispatcherDefault()
+                .conflate() // when you only care about recent values (just get latest)
+//                .take(2)
+//                .transformWhile{ it ->
+//                    println(it)
+//                    emit(it<6)
+//                    (it < 6)
+//                }
+//                .map {
+//                    println(it)
+//                }
+                .onCompletion {
+                    println("Flow completed!")
+                }
+                .collect {
+                    delay(300) // pretend processing
+                    println("collect $it")
+                }
+        }
+
+        println("Time = $time")
+    }
+
+    fun getFlow() = flow {
+        for( value in 1..10 ) {
+            delay(100) // pretend computation / network
+            println("emit flow $value")
+            emit(value)
+        }
+    }
+
+    fun getFlowStrings(value: Int) = flow {
+        emit("First emitted $value")
+        delay(300)
+        emit("Second emitted $value")
+    }
+
+    fun flowOnDispatcherDefault() = flow {
+//        withContext(Dispatchers.Default) { // Dont use this
+            for( value in 1..10 ) {
+                delay(100) // pretend computation / network
+                println("emit flow $value")
+                emit(value)
+            }
+    }.flowOn(Dispatchers.Default)
+
+
+    fun zipCombineOperatorExample() = runBlocking {
+        val flow1 = (1..5).asFlow()
+            .onEach{ delay(100) }
+        val flow2 = flowOf("one", "two", "three", "four", "five", "six")
+            .onEach{ delay(200) }
+        var startTime = System.currentTimeMillis()
+
+        // zip waits for the value to arrive, the emits
+        flow1.zip(flow2) { a, b ->
+            "value $a -> $b"
+        }.collect {
+            println("$it zip ${System.currentTimeMillis() - startTime}ms")
+        }
+
+        println()
+        startTime = System.currentTimeMillis()
+
+        // combine emits the latest of either values
+        flow1.combine(flow2) { a, b ->
+            "value $a -> $b"
+        }.collect {
+            println("$it combine ${System.currentTimeMillis() - startTime}ms")
+        }
+    }
+
+    fun flatMapConcatExample() = runBlocking {
+        (1..5).asFlow()
+            .onEach{
+                delay(300)
+            }
+            .flatMapConcat {
+                getFlowStrings(it)
+            }
+            .onEach {
+
+            }
+            .collect {
+                println(it)
+            }
+    }
+
+    //////////////////////////////
+
+
+    /// COROUTINES ///
 
     // This one uses runBlocking, it ignores cancellations
     private suspend fun networkRequest() {
