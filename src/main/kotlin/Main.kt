@@ -1,7 +1,6 @@
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.system.measureTimeMillis
 
 // Config for Android Studio: https://www.youtube.com/watch?v=a_pL0asAP3U
@@ -315,13 +314,13 @@ class Main() {
         emit("Second emitted $value")
     }
 
-
+//    https://medium.com/mindful-engineering/exception-handling-in-kotlin-coroutines-fd08e622360e
     fun launchInExample() = runBlocking {
 
         val job1 = Job()
         val job2 = Job()
 
-        val jobScope = CoroutineScope(job1) // + Dispatchers.Default)
+        val jobScope = CoroutineScope(job1 + CoroutineName("JobScope")) // + Dispatchers.Default)
         val jobScope2 = CoroutineScope(job2) // + Dispatchers.Default)
         val superScope = CoroutineScope(SupervisorJob() )
 
@@ -341,27 +340,37 @@ class Main() {
                 .flowOn(Dispatchers.IO)
 //                .cancellable() // needed?
                 .map {
-//                    if (it == "two") error(CancellationException("from .map, error on \"$it\"")) // cancels all child flows
-                    if (it == "two") throw CancellationException("from .map, error on \"$it\"") // cancels just this flow
+                    if (it == "two") error(CancellationException("from .map, error on \"$it\"")) // cancels all sibling flows
+//                    if (it == "two") throw CancellationException("from .map, error on \"$it\"") // cancels just this flow
                     it
                 }
                 .catch { e ->
                     println("#3 - .catch: e=$e") // just prints message, cancels the flow
-//                    currentCoroutineContext().cancel(CancellationException(".cancel() from catch")) // cancels the flow, next flow keeps running
+                    currentCoroutineContext().cancel(CancellationException(".cancel() from catch")) // cancels this flow, next flow keeps running
 //                    emit("emit() from .catch(), error:${e.message}") // emits a value instead of error, flow keeps running
-//                    throw Exception(".catch() exception thrown again $e") // cancels all the flows
-                    throw e
+//                    throw Exception(".catch() exception thrown again, $e") // cancels all the flows
+//                    throw e // rethrows exception and cancels all the flows
                 }
-                .onCompletion { e ->
+                .onCompletion { e ->  // onCompletion runs if failed or success, the Throwable is not null for failure
                     println("#3 - .onCompletion: e=$e")
 //                    job1.cancel() // This will cancel the parent coroutine
 //                    emit("emit() from .onCompletion") // emits upon completion
-                    e?.run{ error(e) } // cancels all child flows
-//                    e?.run{ throw(e) } // cancels only this flow
+//                    e?.run{ error(e) } // cancels all child flows with IllegalStateException
+                    e?.run{ throw(e) } ?: println("Error not thrown") // cancels only this flow
                 }
                 .onEach {
                     delay(150)
                     println("coroutine #3 - $it")
+                }
+                .launchIn(coroutineScope)
+
+            flowOf(1, 2, 3)
+                .runningFold(emptyList<Int>()) { acc, value ->
+                    acc + value
+                }
+                .onEach {
+                    delay(500)
+                    println(it)
                 }
                 .launchIn(coroutineScope)
 
@@ -407,10 +416,9 @@ class Main() {
 //                    jobScope.launch(SupervisorJob()) { // no error
 //                    jobScope.launch(handler2) { // Catches the exception
                       jobScope.launch(context = object: CoroutineExceptionHandler {
-                          val handler = CoroutineExceptionHandler { c, e ->
-                              println("inLine handler Caught $e")
+                          val handler: (context: CoroutineContext, exception: Throwable) -> Unit =  { c, e ->
+                              println("inLine handler in $c Caught $e")
                           }
-
                           override val key: CoroutineContext.Key<*>
                               get() = handler.key
 

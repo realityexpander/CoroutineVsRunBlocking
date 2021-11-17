@@ -97,6 +97,12 @@ fun main() {
         catMap.entries.associateByTo(catKeyReversed5, { it.value }, { it.key })
     println("catKeyReversed5=$catKeyReversed5, size=${catKeyReversed5.size}")
 
+
+    // mapKeys transforms the key of the key,value pair
+    val catMapKeys = cats.associate{ c-> c.name to c.age }
+        .mapKeys{ c -> c.key+c.key.length }  // ie: key=catName -> key=catName7
+    println("catMapKeys=$catMapKeys")
+
     // HashMap is same as Map, can only have one key for a value
     val catKeyReversedHash = CatHashMapReversed().also { hashMap ->
         catMap.entries.forEach { (k,v) -> hashMap[v] = k }
