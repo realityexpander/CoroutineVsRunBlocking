@@ -57,8 +57,9 @@ fun main() {
     )
     println("sealed3Delta.obj = ${sealed3Delta.obj}")
     println("sealed3Delta.obj2 = ${sealed3Delta.obj2}")
+    println()
 
-
+    runResponseClass()
 }
 
 
@@ -109,3 +110,42 @@ sealed class Sealed3<T>(val obj: T) {
     data class GAMMA<T>(val obj2: T): Sealed3<T>(obj2)
     class DELTA<T, R>(obj: T, val obj2: R): Sealed3<T>(obj)
 }
+
+
+
+sealed class Response<out R> {
+    class Success<R>(val value: R) : Response<R>()
+    class Failure(val error: Throwable) : Response<Nothing>()
+}
+
+fun handle(response: Response<String>) {
+    val text = when (response) {
+        is Response.Success -> "Success, data is: " + response.value
+        is Response.Failure -> "Error:" + response.error.localizedMessage
+    }
+    println(text)
+}
+
+sealed class Response2<out R>
+class Success2<R>(val value: R) : Response2<R>()
+class Failure2(val error: Throwable) : Response2<Nothing>()
+
+fun handle(response: Response2<String>) {
+    val text = when (response) {
+        is Success2 -> "Success, data is: " + response.value            // Notice no need for nesting here (no need for Response2.Success2)
+        is Failure2 -> "Error:" + response.error.localizedMessage
+    }
+    println(text)
+}
+
+
+
+fun runResponseClass() {
+
+    val responseGood = Response.Success("data:'{Here is some data}'")
+    val responseBad = Response.Failure(error = Throwable("Dun Fucked up", Throwable()))
+
+    handle(responseGood)
+    handle(responseBad)
+}
+
